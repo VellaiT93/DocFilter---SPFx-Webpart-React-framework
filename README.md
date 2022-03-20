@@ -3,7 +3,7 @@
 ## Summary
 
 Document library Webpart:
-  - Choosable source (document library) from any SharePoint Site in the tenant (supports cross-site publishing)
+  - Choosable source (document library) from any SharePoint site in the tenant (supports cross-site publishing)
   - Choosable view according to selected library
   - Choosable filter (must be a choice field in the document library)
 
