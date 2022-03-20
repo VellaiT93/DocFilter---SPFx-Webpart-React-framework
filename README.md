@@ -2,9 +2,14 @@
 
 ## Summary
 
-Short summary on functionality and used technologies.
+Document library Webpart:
+  - Choosable source (document library) from any SharePoint Site in the tenant (supports cross-site publishing)
+  - Choosable view according to selected library
+  - Choosable filter (must be a choice field in the document library)
 
 ![df](https://user-images.githubusercontent.com/64096389/159159529-e6024289-f794-4781-8313-27e2e1d62c1a.png)
+
+![df](https://user-images.githubusercontent.com/64096389/159159580-5a46fc1d-52c7-42c7-9afa-02261bb43f58.png)
 
 ## Used SharePoint Framework Version
 
