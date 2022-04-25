@@ -3,13 +3,13 @@ import styles from './DocFilter.module.scss';
 export default class Renderer {
   private static siteUrl: string = "http://sp2019server/sites/it";
 
-  static async renderTitle(title: string, dom: HTMLElement): Promise<void> {
+  static async _renderTitle(title: string, dom: HTMLElement): Promise<void> {
     const titleHolder: HTMLLinkElement = dom.querySelector('[id^="titleHolder"]') as HTMLLinkElement;
     titleHolder.href = this.siteUrl + '/' + title;
     titleHolder.innerHTML = title;
   }
 
-  static async renderList(items: any, columns: any, dom: any, filter: string): Promise<void> {
+  static async _renderList(items: any, columns: any, dom: any, filter: string): Promise<void> {
     const spListContainer: HTMLElement = dom.querySelector('[class="spListContainer"]') as HTMLElement;
     let html: string = `<table id=${styles.listTable} style="border-collapse: collapse;">`;
     

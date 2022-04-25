@@ -3,7 +3,7 @@
   "solution": {
     "name": "doc-filter-client-side-solution",
     "id": "ab040178-f311-4678-80aa-86035133cad3",
-    "version": "1.0.0.1",
+    "version": "1.0.0.3",
     "includeClientSideAssets": true
   },
   "paths": {

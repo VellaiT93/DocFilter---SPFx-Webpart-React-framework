@@ -3,7 +3,7 @@ import * as ReactDom from 'react-dom';
 import { Version, Environment, EnvironmentType } from '@microsoft/sp-core-library';
 import {
   BaseClientSideWebPart, IPropertyPaneConfiguration, PropertyPaneTextField, 
-  PropertyPaneDropdown, IPropertyPaneDropdownOption
+  PropertyPaneDropdown, IPropertyPaneDropdownOption, WebPartContext
 } from '@microsoft/sp-webpart-base';
 import { 
   SPHttpClient, SPHttpClientResponse, 
@@ -12,10 +12,7 @@ import {
 
 import * as strings from 'DocFilterWebPartStrings';
 import DocFilter from './components/DocFilter';
-import Renderer from './components/Renderer';
 import { IDocFilterProps } from './components/IDocFilterProps';
-
-import {sp, Web, List} from 'sp-pnp-js';
 
 export interface IDocFilterWebPartProps {
   description: string;
@@ -34,11 +31,20 @@ export interface ISPListItem {
   Title: string;
 }
 
+export interface ISPView {
+  value: ISPViewItem[];
+}
+
+export interface ISPViewItem {
+  Title: string;
+}
+
 export default class DocFilterWebPart extends BaseClientSideWebPart<IDocFilterWebPartProps> {
 
   //private queryString: String = "http://sp2019server/sites/it/_api/web/lists/GetByTitle('HeaderText')/Items";
   //private siteUrl: string = this.context.pageContext.web.absoluteUrl;
   private siteUrl: string = "http://sp2019server/sites/it";
+  private listFilter: string = "BaseTemplate eq 101";
 
   private lists: IPropertyPaneDropdownOption[] = [];
   private listsDropDownDisabled: boolean = false;
@@ -46,95 +52,24 @@ export default class DocFilterWebPart extends BaseClientSideWebPart<IDocFilterWe
   private views: IPropertyPaneDropdownOption[] = [];
   private viewsDropDownDisabled: boolean = false;
 
-  private columns: any[] = [];
   private columnValues: IPropertyPaneDropdownOption[] = [
     {key: "Dokart", text: "Dokart"}
   ];
 
-  private filter: string = 'all';
-
   private listName: string;
-  private viewName: string;
 
-  private web: Web = new Web(this.siteUrl);
-
-  setButtonHandlers(): void {
-    const spListContainer: HTMLElement = this.domElement.querySelector('[id^="content"]') as HTMLElement;
-
-    const allButton = this.domElement.querySelector('[id^="all"]') as HTMLElement;
-    allButton.addEventListener('click', () => {
-      spListContainer.innerHTML = '';
-      this.filter = 'all';
-      this.render();
-    });
-
-    const spButton = this.domElement.querySelector('[id^="sp"]') as HTMLElement;
-    spButton.addEventListener('click', () => {
-      spListContainer.innerHTML = '';
-      this.filter = 'SharePoint';
-      this.render();
-    });
-
-    const officeButton = this.domElement.querySelector('[id^="office"]') as HTMLElement;
-    officeButton.addEventListener('click', () => {
-      spListContainer.innerHTML = '';
-      this.filter = 'Office';
-      this.render();
-    });
-
-    const confButton = this.domElement.querySelector('[id^="conf"]') as HTMLElement;
-    confButton.addEventListener('click', () => {
-      spListContainer.innerHTML = '';
-      this.filter = 'Confidential';
-      this.render();
-    });
-  }
-
-  async loadColumns(listName: string, viewName: string): Promise<any> {
-    const filter = `Hidden eq false and ReadOnlyField eq false`;
-    
-    return this.web.lists.getByTitle(listName).views.getByTitle(viewName).fields.select('Items').filter(filter).get().then((response) => {
-      return response;
-    }).catch(() => {
-      console.log('List name or view name could not be found.');
-    });
-  }
-
-  async getViewQuery(listName: string, viewName: string): Promise<any> {
-    return this.web.lists.getByTitle(listName).views.getByTitle(viewName).select('ViewQuery').get().then((response) => {
-      return response.ViewQuery;
-    }).catch(() => {
-      return console.log('List name or view name could not be found.');
-    });
-  }
-
-  async loadItems(listName: string, query: string): Promise<any> {
-    const viewFields = `<ViewFields><FieldRef Name='Alt_x0020_Text' />
-      <FieldRef Name='AlternateThumbnailUrl' />
-      <FieldRef Name='FileRef' />
-      <FieldRef Name='ID' />
-      <FieldRef Name='Title' />
-    </ViewFields>`;
-  
-    const queryOptions = "<QueryOptions><ViewAttributes Scope='RecursiveAll'/><top=10000 /></QueryOptions>";
-
-    const xml = '<View><Query>' + viewFields + query + queryOptions + '</Query></View>';
-
-    return this.web.lists.getByTitle(listName).getItemsByCAMLQuery({'ViewXml': xml}, 'FileRef', 'File', 'File_x0020_Type', 'FieldValuesAsText').then((response: any) => {
-      return response;
-    }).catch(() => {
-      return console.log('List name or view name could not be found.');
-    });
-  }
-
-  async loadSPLists(): Promise<ISPList> {
-    return this.context.spHttpClient.get(`${this.siteUrl}/_api/web/lists?$filter=BaseTemplate eq 101`, SPHttpClient.configurations.v1).then((response: SPHttpClientResponse) => {
+  // Load all SP libraries from site (only bibs --> Teplate 101)
+  private async _loadSPLists(url: string): Promise<ISPList> {
+    return this.context.spHttpClient.get(`${url}/_api/web/lists?$filter=${this.listFilter}`, 
+    SPHttpClient.configurations.v1).then((response: SPHttpClientResponse) => {
       return response.json();
     });
   }
 
-  async loadSPViews(listName: string): Promise<any> {
-    return this.context.spHttpClient.get(`${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/Views`, SPHttpClient.configurations.v1).then((response: SPHttpClientResponse) => {
+  // Load SP views according to given list
+  private async _loadSPViews(listName: string): Promise<ISPView> {
+    return this.context.spHttpClient.get(`${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/Views`, 
+    SPHttpClient.configurations.v1).then((response: SPHttpClientResponse) => {
       return response.json();
     });
   }
@@ -148,40 +83,12 @@ export default class DocFilterWebPart extends BaseClientSideWebPart<IDocFilterWe
         sharePointList: this.properties.sharePointList,
         sharePointView: this.properties.sharePointView, 
         sharePointLink: this.properties.sharePointLink, 
-        sharePointColumn: this.properties.sharePointColumn
+        sharePointColumn: this.properties.sharePointColumn,
+        context: this.context
       }
     );
 
     ReactDom.render(element, this.domElement);
-
-    if (this.properties.sharePointList) {
-      this.listName = this.properties.sharePointList;
-      this.viewName = this.properties.sharePointView;
-    }
-
-    if (Environment.type === EnvironmentType.SharePoint) {
-      if (this.listName && this.viewName) {
-        this.loadColumns(this.listName, this.viewName).then((result) => {
-          if (result) {
-            this.columns = [];
-            const fields = (result as any).Items.results || (result as any).Items;
-            for (let f = 0; f < fields.length; f++) {
-              this.columns.push({ key: fields[f], text: fields[f] });
-            }
-          }
-        }).then(() => {
-          this.getViewQuery(this.listName, this.viewName).then((result) => {
-            this.loadItems(this.listName, result).then((items: any) => {
-              Renderer.renderTitle(this.listName, this.domElement).then(() => {
-                Renderer.renderList(items, this.columns, this.domElement, this.filter).then(() => {
-                  this.setButtonHandlers();
-                });
-              });
-            });
-          });
-        });
-      }
-    }
   }
 
   protected onDispose(): void {
@@ -195,7 +102,7 @@ export default class DocFilterWebPart extends BaseClientSideWebPart<IDocFilterWe
   protected onPropertyPaneConfigurationStart(): void {
     //this.context.statusRenderer.displayLoadingIndicator(this.domElement, 'lists');
 
-    this.loadSPLists().then((result) => {
+    this._loadSPLists(this.siteUrl).then((result) => {
       result.value.forEach((item: ISPListItem) => {
         this.lists.push({
           key: item.Title, 
@@ -216,8 +123,8 @@ export default class DocFilterWebPart extends BaseClientSideWebPart<IDocFilterWe
     this.views = [];
     
     if (this.listName) {
-      this.loadSPViews(this.listName).then((response) => {
-        response.value.forEach((item: ISPListItem) => {
+      this._loadSPViews(this.listName).then((response) => {
+        response.value.forEach((item: ISPViewItem) => {
           this.views.push({
             key: item.Title, 
             text: item.Title
