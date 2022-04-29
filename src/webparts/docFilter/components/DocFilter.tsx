@@ -4,7 +4,6 @@ import { IDocFilterProps } from './IDocFilterProps';
 import { escape } from '@microsoft/sp-lodash-subset';
 import {sp, Web, List} from 'sp-pnp-js';
 import DOMRenderer from './DOMRenderer';
-import { filter } from 'lodash';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 
 export default class DocFilter extends React.Component<IDocFilterProps, { filter: string }> {
