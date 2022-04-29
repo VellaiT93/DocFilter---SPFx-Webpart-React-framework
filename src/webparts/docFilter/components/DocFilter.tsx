@@ -84,9 +84,9 @@ export default class DocFilter extends React.Component<IDocFilterProps, { filter
     });
   }
 
-  /*public componentDidMount(): void {
+  public componentDidMount(): void {
     if (this.props.sharePointList && this.props.sharePointView) this._initiate();
-  }*/
+  }
 
   public componentDidUpdate(): void {
     if (this.props.sharePointList && this.props.sharePointView) this._initiate();
