@@ -4,37 +4,27 @@ import { IDocFilterProps } from './IDocFilterProps';
 import { escape } from '@microsoft/sp-lodash-subset';
 import {sp, Web, List} from 'sp-pnp-js';
 import DOMRenderer from './DOMRenderer';
+import { filter } from 'lodash';
+import { WebPartContext } from '@microsoft/sp-webpart-base';
 
-export interface ISPList {
-  value: ISPListItem[];
-}
-
-export interface ISPListItem { 
-  Title: string;
-}
-
-export interface ISPView {
-  value: ISPViewItem[];
-}
-
-export interface ISPViewItem {
-  Title: string;
-}
-
-export default class DocFilter extends React.Component<IDocFilterProps, {}> {
+export default class DocFilter extends React.Component<IDocFilterProps, { filter: string }> {
   private siteUrl: string = "http://sp2019server/sites/it";
   private web: Web = new Web(this.siteUrl);
 
   private columns: any[] = [];
 
-  private filter: string = 'all';
+  constructor(props: any, context: WebPartContext) {
+    super(props, context);
+    this.state = {
+      filter: 'all'
+    };
+  }
 
   private _applyFilter(arg: string): void {
     const spListContainer: HTMLElement = this.props.context.domElement.querySelector('[id^="content"]') as HTMLElement;
     if (spListContainer.innerHTML !== '') spListContainer.innerHTML = '';
 
-    this.filter = arg;
-    this.componentDidUpdate();
+    this.setState({filter: arg});
   }
 
   private async _loadColumns(listName: string, viewName: string): Promise<any> {
@@ -87,23 +77,19 @@ export default class DocFilter extends React.Component<IDocFilterProps, {}> {
       this._getViewQuery(this.props.sharePointList, this.props.sharePointView).then((result) => {
         this._loadItems(this.props.sharePointList, result).then((items: any) => {
           DOMRenderer._renderTitle(this.props.sharePointList, this.props.context.domElement).then(() => {
-            DOMRenderer._renderList(items, this.columns, this.props.context.domElement, this.filter);
+            DOMRenderer._renderList(items, this.columns, this.props.context.domElement, this.state.filter);
           });
         });
       });
     });
   }
 
-  public componentDidMount(): void {
-    if (this.props.sharePointList && this.props.sharePointView) {
-      this._initiate();
-    }
-  }
+  /*public componentDidMount(): void {
+    if (this.props.sharePointList && this.props.sharePointView) this._initiate();
+  }*/
 
   public componentDidUpdate(): void {
-    if (this.props.sharePointList && this.props.sharePointView) {
-      this._initiate();
-    }
+    if (this.props.sharePointList && this.props.sharePointView) this._initiate();
   }
 
   public render(): React.ReactElement<IDocFilterProps> {
